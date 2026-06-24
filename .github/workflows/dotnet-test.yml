@@ -1,0 +1,38 @@
+﻿name: dotnet-test
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # ghasec-ignore: unpinned-action
+      - uses: AndanteTribe/Actions/actions/checkout@main # zizmor: ignore[unpinned-uses] repository-local action reference is intentionally tracked on @main
+        with:
+          fetch-depth: 0
+      # ghasec-ignore: unpinned-action
+      - uses: AndanteTribe/Actions/actions/setup-dotnet@main # zizmor: ignore[unpinned-uses] repository-local action reference is intentionally tracked on @main
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore tests/Tutorial.Tests/Tutorial.Tests.csproj
+      - run: dotnet build tests/Tutorial.Tests/Tutorial.Tests.csproj --configuration Release --no-restore
+      - run: dotnet test tests/Tutorial.Tests/Tutorial.Tests.csproj --configuration Release --no-build --verbosity normal --results-directory TestResults
+      # ghasec-ignore: unpinned-action
+      - uses: AndanteTribe/Actions/actions/upload-artifact@main  # zizmor: ignore[unpinned-uses] repository-local action reference is intentionally tracked on @main
+        with:
+          name: test-results
+          path: TestResults/
