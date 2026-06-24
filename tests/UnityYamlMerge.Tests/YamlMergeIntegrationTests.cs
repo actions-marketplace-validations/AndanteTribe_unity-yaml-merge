@@ -99,7 +99,7 @@ public class YamlMergeIntegrationTests : IDisposable
         var outputFile1 = Path.Combine(_testOutputDirectory, "merged_output1.unity");
         var outputFile2 = Path.Combine(_testOutputDirectory, "merged_output2.unity");
 
-        var requests = new List<MergeRequest>
+        var requests = new List<MergeRequest>(2)
         {
             new MergeRequest(baseFile, oursFile, theirsFile, outputFile1),
             new MergeRequest(baseFile, oursFile, theirsFile, outputFile2)
@@ -140,7 +140,7 @@ public class YamlMergeIntegrationTests : IDisposable
         var theirsFile = Path.Combine(_samplesDirectory, "Assets", "_merge_theirs.unity");
 
         File.Copy(Path.Combine(_samplesDirectory, "Assets", "_merge_ours.unity"), oursFile, true);
-        var originalOursContent = await File.ReadAllTextAsync(oursFile);
+        await File.ReadAllTextAsync(oursFile);
 
         var mergeRequest = new MergeRequest(baseFile, oursFile, theirsFile, oursFile); // output == ours
         var requests = new List<MergeRequest> { mergeRequest };

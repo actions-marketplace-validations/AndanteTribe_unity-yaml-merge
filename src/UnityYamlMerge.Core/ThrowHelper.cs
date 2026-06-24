@@ -7,7 +7,7 @@ public static class ThrowHelper
         var hasError = false;
         if (versionSource == VersionSource.Invalid)
         {
-            Console.Error.WriteLine($"{EnvironmentVariables.UnityVersionSource} is not set or invalid. Set `{EnvironmentVariables.UnityVersionSource}` to one of the following values: `project`, `latest-lfs`, or `manual`.");
+            Console.Error.WriteLine($"{EnvironmentVariables.UnityVersionSource} is not set or invalid. Set `{EnvironmentVariables.UnityVersionSource}` to one of the following values: `project`, `latest-lts`, or `manual`.");
             hasError = true;
         }
         if (versionSource == VersionSource.Manual && string.IsNullOrEmpty(unityVersion))
@@ -82,11 +82,12 @@ public static class ThrowHelper
 
     public static void ThrowException(Exception e)
     {
-        if (e is not OperationCanceledException)
+        if (e is OperationCanceledException)
         {
-            Console.Error.WriteLine(e.Message);
-            Environment.Exit(1);
+            throw e;
         }
+        Console.Error.WriteLine(e.Message);
+        Environment.Exit(1);
     }
 
     public static void ThrowFailPullDockerImage(string dockerImage)
