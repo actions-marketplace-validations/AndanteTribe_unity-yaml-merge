@@ -1,4 +1,4 @@
-﻿namespace UnityYamlMerge.Core;
+namespace UnityYamlMerge.Core;
 
 public readonly record struct MergeRequest
 {

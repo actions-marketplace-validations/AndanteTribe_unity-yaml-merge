@@ -1,4 +1,4 @@
-﻿namespace UnityYamlMerge.Core;
+namespace UnityYamlMerge.Core;
 
 public enum VersionSource : sbyte
 {

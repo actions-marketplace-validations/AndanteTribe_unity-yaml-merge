@@ -176,7 +176,8 @@ public class YamlMergeIntegrationTests : IDisposable
             };
 
             using var process = Process.Start(startInfo);
-            if (process == null) return false;
+            if (process == null)
+                return false;
 
             await process.WaitForExitAsync();
             return process.ExitCode == 0;
