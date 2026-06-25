@@ -7,10 +7,13 @@ on:
     tags:
       - "v*.*.*"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   DOCKERFILE_PATH: src/UnityYamlMerge/Dockerfile
   DOCKER_REPOSITORY_NAME: andantetribe/unity-yaml-merge
-
 permissions:
   contents: read
   actions: write
