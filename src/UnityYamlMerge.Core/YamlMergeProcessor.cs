@@ -4,7 +4,7 @@ namespace UnityYamlMerge.Core;
 
 public static class YamlMergeProcessor
 {
-    public static async ValueTask StartAsync(IReadOnlyList<MergeRequest> requests, CancellationToken cancellationToken = default)
+    public static async ValueTask StartAsync(IReadOnlyCollection<MergeRequest> requests, CancellationToken cancellationToken = default)
     {
         ThrowHelper.ThrowIfInvalidArguments(requests);
         var (versionSource, unityVersion, projectPath) = EnvironmentVariables.Get();

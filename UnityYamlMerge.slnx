@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="src/UnityYamlMerge.Core/UnityYamlMerge.Core.csproj" />
+  <Project Path="src/UnityYamlMerge.Git/UnityYamlMerge.Git.csproj" />
   <Project Path="src/UnityYamlMerge/UnityYamlMerge.csproj" />
   <Project Path="tests/UnityYamlMerge.Tests/UnityYamlMerge.Tests.csproj" />
 </Solution>

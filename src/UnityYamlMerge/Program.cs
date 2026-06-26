@@ -1,7 +1,13 @@
 using UnityYamlMerge.Core;
 
+if (args.Length == 0)
+{
+    Console.WriteLine("No merge requests provided. Exiting.");
+    Environment.Exit(0);
+}
+
 // arguments: <base1> <ours1> <theirs1> <output1> [<base2> <ours2> <theirs2> <output2> ...]
-if (args.Length == 0 || args.Length % 4 != 0)
+if (args.Length % 4 != 0)
 {
     Console.Error.WriteLine("Usage: UnityYamlMerge <base> <ours> <theirs> <output> [...]");
     Console.Error.WriteLine("Arguments must be provided in sets of 4.");
@@ -14,4 +20,5 @@ for (var i = 0; i < args.Length; i += 4)
     requests.Add(new MergeRequest(args[i], args[i + 1], args[i + 2], args[i + 3]));
 }
 
-await YamlMergeProcessor.StartAsync(requests);
+using var cancellationTokenSource = new CancellationTokenSource();
+await YamlMergeProcessor.StartAsync(requests, cancellationTokenSource.Token);
