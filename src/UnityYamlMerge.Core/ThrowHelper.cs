@@ -40,7 +40,7 @@ public static class ThrowHelper
         }
     }
 
-    public static void ThrowIfInvalidArguments(IReadOnlyList<MergeRequest> requests)
+    public static void ThrowIfInvalidArguments(IReadOnlyCollection<MergeRequest> requests)
     {
         var hasError = 0;
         Parallel.ForEach(requests, request =>

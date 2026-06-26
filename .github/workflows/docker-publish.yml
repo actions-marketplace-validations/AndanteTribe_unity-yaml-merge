@@ -11,10 +11,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  DOCKERFILE_PATH: src/UnityYamlMerge/Dockerfile
-  DOCKER_REPOSITORY_NAME: andantetribe/unity-yaml-merge
-
 permissions:
   contents: read
   actions: write
@@ -22,6 +18,14 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - dockerfile: src/UnityYamlMerge/Dockerfile
+            repository: andantetribe/unity-yaml-merge
+          - dockerfile: src/UnityYamlMerge.Git/Dockerfile
+            repository: andantetribe/unity-yaml-merge-git
+
     steps:
       # ghasec-ignore: unpinned-action
       - uses: AndanteTribe/Actions/actions/checkout@main # zizmor: ignore[unpinned-uses] repository-local action reference is intentionally tracked on @main
@@ -31,7 +35,7 @@ jobs:
         # ghasec-ignore: unpinned-action
         uses: AndanteTribe/Actions/actions/docker-metadata-action@main # zizmor: ignore[unpinned-uses] repository-local action reference is intentionally tracked on @main
         with:
-          images: ${{ env.DOCKER_REPOSITORY_NAME }}
+          images: ${{ matrix.repository }}
           tags: |
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
             type=semver,pattern={{version}}
@@ -53,7 +57,7 @@ jobs:
         uses: AndanteTribe/Actions/actions/docker-build-push-action@main # zizmor: ignore[unpinned-uses] repository-local action reference is intentionally tracked on @main
         with:
           context: .
-          file: ${{ env.DOCKERFILE_PATH }}
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha

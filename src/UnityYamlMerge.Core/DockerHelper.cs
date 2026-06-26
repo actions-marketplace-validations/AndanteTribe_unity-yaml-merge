@@ -1,16 +1,23 @@
 using System.Diagnostics;
+using ValueTaskSupplement;
 
 namespace UnityYamlMerge.Core;
 
 public static class DockerHelper
 {
-    public static ValueTask<bool> PullImageAsync(string imageName, CancellationToken cancellationToken = default)
+    public static async ValueTask<bool> PullImageAsync(string imageName, CancellationToken cancellationToken = default)
     {
-        return RunAsync("pull " + imageName, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        var startInfo = ProcessStartInfo.Create("docker");
+        startInfo.ArgumentList.Add("pull");
+        startInfo.ArgumentList.Add(imageName);
+        var exitCode = await Process.StartAsync(startInfo, cancellationToken: cancellationToken);
+        return exitCode == 0;
     }
 
     internal static async ValueTask<bool> RunMergeAsync(string dockerImage, string projectPath, MergeRequest request, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var absBase = Path.GetFullPath(request.Base);
         var absOurs = Path.GetFullPath(request.Ours);
         var absTheirs = Path.GetFullPath(request.Theirs);
@@ -30,7 +37,7 @@ public static class DockerHelper
             var oursFileName = Path.GetFileName(absOurs);
             var theirsFileName = Path.GetFileName(absTheirs);
 
-            await Task.WhenAll(
+            await ValueTaskEx.WhenAll(
                 CopyAsync(absBase, Path.Combine(workDirectory, baseFileName), cancellationToken),
                 CopyAsync(absOurs, Path.Combine(workDirectory, oursFileName), cancellationToken),
                 CopyAsync(absTheirs, Path.Combine(workDirectory, theirsFileName), cancellationToken)
@@ -38,72 +45,37 @@ public static class DockerHelper
 
             const string unityYamlMerge = "/opt/unity/Editor/Data/Tools/UnityYAMLMerge";
 
-            var dockerArgs =
-                $"run --rm " +
-                $"--entrypoint {unityYamlMerge} " +
-                $"-v \"{projectPath}:/project\" " +
-                $"-v \"{workDirectory}:/merge:ro\" " +
-                $"-v \"{absOutputDir}:/output\" " +
-                $"{dockerImage} " +
-                $"merge -p /merge/{baseFileName} /merge/{oursFileName} /merge/{theirsFileName} /output/{Path.GetFileName(absOutput)}";
-
-            return await RunAsync(dockerArgs, cancellationToken);
+            var startInfo = ProcessStartInfo.Create("docker");
+            startInfo.ArgumentList.Add("run");
+            startInfo.ArgumentList.Add("--rm");
+            startInfo.ArgumentList.Add("--entrypoint");
+            startInfo.ArgumentList.Add(unityYamlMerge);
+            startInfo.ArgumentList.Add("-v");
+            startInfo.ArgumentList.Add(projectPath + ":/project");
+            startInfo.ArgumentList.Add("-v");
+            startInfo.ArgumentList.Add(workDirectory + ":/merge:ro");
+            startInfo.ArgumentList.Add("-v");
+            startInfo.ArgumentList.Add(absOutputDir + ":/output");
+            startInfo.ArgumentList.Add(dockerImage);
+            startInfo.ArgumentList.Add("merge");
+            startInfo.ArgumentList.Add("-p");
+            startInfo.ArgumentList.Add("/merge/" + baseFileName);
+            startInfo.ArgumentList.Add("/merge/" + oursFileName);
+            startInfo.ArgumentList.Add("/merge/" + theirsFileName);
+            startInfo.ArgumentList.Add("/output/" + Path.GetFileName(absOutput));
+            var exitCode = await Process.StartAsync(startInfo, cancellationToken: cancellationToken);
+            return exitCode == 0;
         }
         finally
         {
             Directory.Delete(workDirectory, recursive: true);
         }
 
-        static async Task CopyAsync(string source, string destination, CancellationToken cancellationToken = default)
+        static async ValueTask CopyAsync(string source, string destination, CancellationToken cancellationToken = default)
         {
-            var text = await File.ReadAllTextAsync(source, cancellationToken);
-            await File.WriteAllTextAsync(destination, text, cancellationToken);
+            await using var sourceStream = File.OpenRead(source);
+            await using var destinationStream = File.Create(destination);
+            await sourceStream.CopyToAsync(destinationStream, cancellationToken);
         }
-    }
-
-    private static async ValueTask<bool> RunAsync(string arguments, CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "docker",
-            Arguments = arguments,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true
-        };
-
-        using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start docker process.");
-        var stdoutCompletionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var stderrCompletionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        process.OutputDataReceived += (_, e) =>
-        {
-            if (e.Data is null)
-            {
-                stdoutCompletionSource.TrySetResult();
-                return;
-            }
-
-            Console.WriteLine(e.Data);
-        };
-
-        process.ErrorDataReceived += (_, e) =>
-        {
-            if (e.Data is null)
-            {
-                stderrCompletionSource.TrySetResult();
-                return;
-            }
-
-            Console.Error.WriteLine(e.Data);
-        };
-
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        await process.WaitForExitAsync(cancellationToken);
-        await Task.WhenAll(stdoutCompletionSource.Task, stderrCompletionSource.Task);
-        return process.ExitCode == 0;
     }
 }
