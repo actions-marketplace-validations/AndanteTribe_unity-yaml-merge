@@ -1,0 +1,29 @@
+﻿name: "Unity YAML Merge"
+author: "AndanteTribe"
+description: "A tool to execute YamlMerge for resolving and merging Unity YAML files."
+
+inputs:
+  base-branch:
+    description: "BASE_BRANCH"
+      required: false
+    target-extensions:
+      description: "TARGET_EXTENSIONS"
+      required: false
+    project-path:
+      description: "PROJECT_PATH"
+      required: false
+    unity-version-source:
+      description: "UNITY_VERSION_SOURCE"
+      required: false
+    unity-version:
+      description: "UNITY_VERSION"
+      required: false
+runs:
+  using: docker
+  image: docker://andantetribe/unity-yaml-merge-git:0.1.0-preview@sha256:b595ee0c3ca474bd99f69b1d3424abbe9ed2268d5f1c1c8c8bf772eff41e3f20
+  env:
+    BASE_BRANCH: ${{ inputs.base-branch }}
+    TARGET_EXTENSIONS: ${{ inputs.target-extensions }}
+    PROJECT_PATH: ${{ inputs.project-path }}
+    UNITY_VERSION_SOURCE: ${{ inputs.unity-version-source }}
+    UNITY_VERSION: ${{ inputs.unity-version }}

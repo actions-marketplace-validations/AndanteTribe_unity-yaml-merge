@@ -1,0 +1,61 @@
+﻿name: "Unity YAML Merge"
+author: "AndanteTribe"
+description: "A tool to execute YamlMerge for resolving and merging Unity YAML files."
+
+inputs:
+  github-token:
+    description: GitHub token used for API calls and pushing resolved files. Defaults to the built-in GITHUB_TOKEN. The token must have contents: write permission.
+    required: false
+    default: ""
+  base-branch:
+    description: >
+    Branch to merge from.
+    - On pull_request / pull_request_target events: defaults to the PR's base branch.
+    - On all other events: defaults to the repository's default branch (e.g. main).
+    Specify explicitly to override either default.
+    required: false
+    default: ""
+  target-extensions:
+    description: Comma-separated list of file extensions to check for conflicts. Only files matching these extensions are passed to UnityYAMLMerge. Defaults to unity and prefab, as recommended by the Unity documentation.
+    required: false
+    default: "unity,prefab"
+  fetch-depth:
+    description: Number of commits to fetch during checkout. 0 fetches the entire history, which is required for merge-base resolution. Increase only if full history is too costly for your repository.
+    required: false
+    default: 0
+  project-path:
+    description: Path to the Unity project root, relative to the repository root. Used to locate ProjectSettings/ProjectVersion.txt when unity-version-source is project.
+    required: false
+    default: "."
+  unity-version-source:
+    description: >
+      How to determine the Unity Editor version for the Docker image.
+      - project   : read m_EditorVersion from ProjectSettings/ProjectVersion.txt (default).
+      - latest-lts: fetch the latest LTS patch version from unity.com/releases/editor/lts-releases.xml.
+      - manual    : use the value specified in the unity-version input.
+    required: false
+    default: "project"
+  unity-version:
+    description: Unity Editor version string (e.g. 2022.3.45f1). Ignored unless unity-version-source is manual.
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    # see: https://github.com/actions/checkout
+    - name: Checkout
+      id: checkout
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        fetch-depth: ${{ inputs.fetch-depth }}
+        token: ${{ inputs.github-token || github.token }}
+    - name: Run UnityYAMLMerge
+      id: run-merge
+      # ghasec-ignore: unpinned-action
+      uses: AndanteTribe/unity-yaml-merge/actions/unity-yaml-merge-git@main # zizmor: ignore[unpinned-uses] repository-local action reference is intentionally tracked on @main
+      with:
+        base-branch: ${{ inputs.base-branch || ((github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && github.event.pull_request.base.ref) || github.event.repository.default_branch }}
+        target-extensions: ${{ inputs.target-extensions }}
+        project-path: ${{ inputs.project-path }}
+        unity-version-source: ${{ inputs.unity-version-source }}
+        unity-version: ${{ inputs.unity-version }}
