@@ -30,10 +30,4 @@
       <PackageReference Include="ValueTaskSupplement" Version="1.1.0" />
     </ItemGroup>
 
-    <ItemGroup>
-        <TrimmerRootAssembly Include="System.Net.Http" />
-        <TrimmerRootAssembly Include="System.Net.Security" />
-        <TrimmerRootAssembly Include="System.Security.Cryptography" />
-        <TrimmerRootAssembly Include="System.Security.Cryptography.Algorithms" />
-    </ItemGroup>
 </Project>
