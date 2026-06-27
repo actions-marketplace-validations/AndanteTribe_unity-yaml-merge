@@ -60,6 +60,22 @@ public static class GitHelper
         return result;
     }
 
+    public static async ValueTask FetchAsync(string branch, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var processStartInfo = ProcessStartInfo.Create("git");
+        processStartInfo.ArgumentList.Add("fetch");
+        processStartInfo.ArgumentList.Add("origin");
+        processStartInfo.ArgumentList.Add(branch);
+
+        var output = new ConcurrentQueue<string>();
+        var exitCode = await Process.StartAsync(processStartInfo, output, cancellationToken);
+        if (exitCode != 0)
+        {
+            ThrowGitFailed(exitCode, output);
+        }
+    }
+
     /// <summary>
     /// Executes git merge-tree --write-tree and returns a list of conflicted file paths with target extensions.
     /// Detects conflicts when merging targetBranch (PR source, HEAD) into baseBranch (PR target, e.g., main).

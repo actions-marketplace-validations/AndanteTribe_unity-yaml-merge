@@ -32,9 +32,12 @@ try
         baseBranch = await GitHelper.GetDefaultBranchAsync(cancellationTokenSource.Token);
     }
 
-    // Detect conflicts when merging headBranch (HEAD) into baseBranch (e.g., main)
+    await GitHelper.FetchAsync(baseBranch, cancellationTokenSource.Token);
+    var remoteBranch = "origin/" + baseBranch;
+
+    // Detect conflicts when merging headBranch (HEAD) into remoteBranch (e.g., main)
     const string headBranch = "HEAD";
-    var conflictFiles = await GitHelper.GetConflictedFilePathsAsync(baseBranch, headBranch, targetExtensions, cancellationTokenSource.Token);
+    var conflictFiles = await GitHelper.GetConflictedFilePathsAsync(remoteBranch, headBranch, targetExtensions, cancellationTokenSource.Token);
 
     if (conflictFiles.Count == 0)
     {
@@ -43,7 +46,7 @@ try
     }
 
     // Use the common ancestor (merge-base) of ours/theirs as base
-    var mergeBase = await GitHelper.GetMergeBaseAsync(baseBranch, headBranch, cancellationTokenSource.Token);
+    var mergeBase = await GitHelper.GetMergeBaseAsync(remoteBranch, headBranch, cancellationTokenSource.Token);
 
     var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(tempDir);
