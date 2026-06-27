@@ -6,6 +6,24 @@ namespace UnityYamlMerge.Git;
 
 public static class GitHelper
 {
+    public static async ValueTask SetConfigSafeDirectoryAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var processStartInfo = ProcessStartInfo.Create("git");
+        processStartInfo.ArgumentList.Add("config");
+        processStartInfo.ArgumentList.Add("--global");
+        processStartInfo.ArgumentList.Add("--add");
+        processStartInfo.ArgumentList.Add("safe.directory");
+        processStartInfo.ArgumentList.Add("*");
+
+        var output = new ConcurrentQueue<string>();
+        var exitCode = await Process.StartAsync(processStartInfo, output, cancellationToken);
+        if (exitCode != 0)
+        {
+            ThrowGitFailed(exitCode, output);
+        }
+    }
+
     public static async ValueTask<string> GetDefaultBranchAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -49,6 +67,7 @@ public static class GitHelper
     public static async ValueTask<IReadOnlyList<string>> GetConflictedFilePathsAsync(
         string baseBranch, string headBranch, string[] targetExtensions, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         // exit code 0 = clean merge, 1 = conflicts exist, other = error
         var processStartInfo = ProcessStartInfo.Create("git");
         processStartInfo.ArgumentList.Add("merge-tree");
@@ -98,6 +117,7 @@ public static class GitHelper
 
     public static async ValueTask<string> GetMergeBaseAsync(string branch1, string branch2, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var processStartInfo = ProcessStartInfo.Create("git");
         processStartInfo.ArgumentList.Add("merge-base");
         processStartInfo.ArgumentList.Add(branch1);
@@ -114,6 +134,7 @@ public static class GitHelper
 
     public static async ValueTask<string> GetBlobOidAsync(string treeish, string filePath, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         try
         {
             var processStartInfo = ProcessStartInfo.Create("git");
@@ -144,6 +165,7 @@ public static class GitHelper
     /// </summary>
     public static async ValueTask ExportBlobAsync(string blobOid, string outputPath, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var startInfo = ProcessStartInfo.Create("git");
         startInfo.ArgumentList.Add("cat-file");
         startInfo.ArgumentList.Add("blob");
@@ -203,6 +225,7 @@ public static class GitHelper
     /// </summary>
     public static async ValueTask AddAsync(IEnumerable<string> filePaths, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var processStartInfo = ProcessStartInfo.Create("git");
         processStartInfo.ArgumentList.Add("add");
         processStartInfo.ArgumentList.Add("--");
@@ -224,6 +247,7 @@ public static class GitHelper
     /// </summary>
     public static async ValueTask CommitAsync(string message, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var processStartInfo = ProcessStartInfo.Create("git");
         processStartInfo.ArgumentList.Add("commit");
         processStartInfo.ArgumentList.Add("-m");
@@ -242,6 +266,7 @@ public static class GitHelper
     /// </summary>
     public static async ValueTask PushAsync(string remote, string? refspec = null, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var processStartInfo = ProcessStartInfo.Create("git");
         processStartInfo.ArgumentList.Add("push");
         processStartInfo.ArgumentList.Add(remote);

@@ -25,5 +25,4 @@ RUN set -eux; \
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-RUN git config --global --add safe.directory '*'
 ENTRYPOINT ["/app/UnityYamlMerge.Git"]

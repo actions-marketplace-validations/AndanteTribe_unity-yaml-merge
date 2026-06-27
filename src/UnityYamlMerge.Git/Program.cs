@@ -25,6 +25,8 @@ Console.CancelKeyPress += (_, e) =>
 
 try
 {
+    await GitHelper.SetConfigSafeDirectoryAsync(cancellationTokenSource.Token);
+
     if (string.IsNullOrEmpty(baseBranch))
     {
         baseBranch = await GitHelper.GetDefaultBranchAsync(cancellationTokenSource.Token);
@@ -32,9 +34,7 @@ try
 
     // Detect conflicts when merging headBranch (HEAD) into baseBranch (e.g., main)
     const string headBranch = "HEAD";
-    var conflictFiles =
-        await GitHelper.GetConflictedFilePathsAsync(baseBranch, headBranch, targetExtensions,
-            cancellationTokenSource.Token);
+    var conflictFiles = await GitHelper.GetConflictedFilePathsAsync(baseBranch, headBranch, targetExtensions, cancellationTokenSource.Token);
 
     if (conflictFiles.Count == 0)
     {
