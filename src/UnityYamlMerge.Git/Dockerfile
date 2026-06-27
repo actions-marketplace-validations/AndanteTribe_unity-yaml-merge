@@ -6,6 +6,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:548d93f8a18a1acbe6cc127bc4f4728143
 RUN apt-get update && apt-get install -y --no-install-recommends clang musl-tools && rm -rf /var/lib/apt/lists/*
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+COPY ["src/UnityYamlMerge.Core/UnityYamlMerge.Core.csproj", "src/UnityYamlMerge.Core/"]
 COPY ["src/UnityYamlMerge.Git/UnityYamlMerge.Git.csproj", "src/UnityYamlMerge.Git/"]
 RUN dotnet restore "src/UnityYamlMerge.Git/UnityYamlMerge.Git.csproj"
 COPY . .
