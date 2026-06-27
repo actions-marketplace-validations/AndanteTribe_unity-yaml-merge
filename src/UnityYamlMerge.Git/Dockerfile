@@ -3,7 +3,7 @@ RUN apk add --no-cache git ca-certificates
 WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine@sha256:940f919ae84dd92ccd4aab7686fa5b777870b006c9360351039e16bcaad73d89 AS publish
-RUN apk add --no-cache clang build-base zlib-dev file openssl-dev openssl-libs-static
+RUN apk add --no-cache clang build-base zlib-dev file openssl-dev openssl-libs-static cmake
 ARG BUILD_CONFIGURATION=Release
 ARG BUILD_OUTPUT_DIR=/app/publish
 WORKDIR /src
