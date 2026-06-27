@@ -63,8 +63,14 @@ public static class GitHelper
     public static async ValueTask FetchAsync(string branch, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var isShallow = await GetIsShallowAsync(cancellationToken);
+
         var processStartInfo = ProcessStartInfo.Create("git");
         processStartInfo.ArgumentList.Add("fetch");
+        if (isShallow)
+        {
+            processStartInfo.ArgumentList.Add("--unshallow");
+        }
         processStartInfo.ArgumentList.Add("origin");
         processStartInfo.ArgumentList.Add(branch);
 
@@ -146,6 +152,22 @@ public static class GitHelper
             ThrowGitFailed(exitCode, output);
         }
         return output.TryDequeue(out var line) ? line.Trim() : throw new InvalidOperationException("Could not determine merge base.");
+    }
+
+    public static async ValueTask<bool> GetIsShallowAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var processStartInfo = ProcessStartInfo.Create("git");
+        processStartInfo.ArgumentList.Add("rev-parse");
+        processStartInfo.ArgumentList.Add("--is-shallow-repository");
+
+        var output = new ConcurrentQueue<string>();
+        var exitCode = await Process.StartAsync(processStartInfo, output, cancellationToken);
+        if (exitCode != 0)
+        {
+            ThrowGitFailed(exitCode, output);
+        }
+        return output.TryDequeue(out var line) ? line.Trim() == "true" : throw new InvalidOperationException("Could not determine if repository is shallow.");
     }
 
     public static async ValueTask<string> GetBlobOidAsync(string treeish, string filePath, CancellationToken cancellationToken = default)
