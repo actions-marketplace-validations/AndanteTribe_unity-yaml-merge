@@ -19,4 +19,4 @@ RUN dotnet publish "./UnityYamlMerge.Git.csproj" -c $BUILD_CONFIGURATION -o /app
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["./UnityYamlMerge.Git"]
+ENTRYPOINT ["/app/UnityYamlMerge.Git"]
