@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using ValueTaskSupplement;
 
 namespace UnityYamlMerge.Core;
@@ -52,11 +51,11 @@ public static class DockerHelper
             startInfo.ArgumentList.Add("--entrypoint");
             startInfo.ArgumentList.Add(unityYamlMerge);
             startInfo.ArgumentList.Add("-v");
-            startInfo.ArgumentList.Add(ConvertToDockerPath(projectPath) + ":/project");
+            startInfo.ArgumentList.Add(projectPath + ":/project");
             startInfo.ArgumentList.Add("-v");
-            startInfo.ArgumentList.Add(ConvertToDockerPath(workDirectory) + ":/merge:ro");
+            startInfo.ArgumentList.Add(workDirectory + ":/merge:ro");
             startInfo.ArgumentList.Add("-v");
-            startInfo.ArgumentList.Add(ConvertToDockerPath(absOutputDir!) + ":/output");
+            startInfo.ArgumentList.Add(absOutputDir + ":/output");
             startInfo.ArgumentList.Add(dockerImage);
             startInfo.ArgumentList.Add("merge");
             startInfo.ArgumentList.Add("-p");
@@ -78,24 +77,5 @@ public static class DockerHelper
             await using var destinationStream = File.Create(destination);
             await sourceStream.CopyToAsync(destinationStream, cancellationToken);
         }
-    }
-
-    private static string ConvertToDockerPath(string path)
-    {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            return path;
-        }
-
-        // Convert Windows path to Docker-compatible path
-        // C:\Users\... -> /c/Users/...
-        var normalized = (Span<char>)stackalloc char[path.Length];
-        path.AsSpan().Replace(normalized, '\\', '/');
-        if (normalized.Length >= 2 && normalized[1] == ':')
-        {
-            var driveLetter = char.ToLowerInvariant(normalized[0]);
-            stackalloc char[2]{ '/', driveLetter }.CopyTo(normalized);
-        }
-        return normalized.ToString();
     }
 }
