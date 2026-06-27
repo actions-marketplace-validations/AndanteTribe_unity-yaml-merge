@@ -4,11 +4,11 @@ description: "A tool to execute YamlMerge for resolving and merging Unity YAML f
 
 inputs:
   auto-push:
-    description: Whether to automatically push resolved files back to the repository. Set to 'true' to enable auto-push. Requires github-token with contents: write permission.
+    description: "Whether to automatically push resolved files back to the repository. Set to 'true' to enable auto-push. Requires github-token with contents: write permission."
     required: false
     default: "true"
   github-token:
-    description: GitHub token used for API calls and pushing resolved files. Defaults to the built-in GITHUB_TOKEN. The token must have contents: write permission.
+    description: "GitHub token used for API calls and pushing resolved files. Defaults to the built-in GITHUB_TOKEN. The token must have contents: write permission."
     required: false
     default: ""
   base-branch:
@@ -20,11 +20,11 @@ inputs:
     required: false
     default: ""
   target-extensions:
-    description: Comma-separated list of file extensions to check for conflicts. Only files matching these extensions are passed to UnityYAMLMerge. Defaults to unity and prefab, as recommended by the Unity documentation.
+    description: "Comma-separated list of file extensions to check for conflicts. Only files matching these extensions are passed to UnityYAMLMerge. Defaults to unity and prefab, as recommended by the Unity documentation."
     required: false
     default: "unity,prefab"
   project-path:
-    description: Path to the Unity project root, relative to the repository root. Used to locate ProjectSettings/ProjectVersion.txt when unity-version-source is project.
+    description: "Path to the Unity project root, relative to the repository root. Used to locate ProjectSettings/ProjectVersion.txt when unity-version-source is project."
     required: false
     default: "."
   unity-version-source:
@@ -36,7 +36,7 @@ inputs:
     required: false
     default: "project"
   unity-version:
-    description: Unity Editor version string (e.g. 2022.3.45f1). Ignored unless unity-version-source is manual.
+    description: "Unity Editor version string (e.g. 2022.3.45f1). Ignored unless unity-version-source is manual."
     required: false
     default: ""
 
