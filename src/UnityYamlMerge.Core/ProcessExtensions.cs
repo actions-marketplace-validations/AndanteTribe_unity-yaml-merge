@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace UnityYamlMerge.Core;
@@ -46,7 +46,8 @@ public static class ProcessExtensions
             {
                 if (e.Data == null)
                 {
-                    stdoutCompletionSource.TrySetResult(); return;
+                    stdoutCompletionSource.TrySetResult();
+                    return;
                 }
 
                 if (output == null)
@@ -63,7 +64,8 @@ public static class ProcessExtensions
             {
                 if (e.Data == null)
                 {
-                    stderrCompletionSource.TrySetResult(); return;
+                    stderrCompletionSource.TrySetResult();
+                    return;
                 }
                 Console.Error.WriteLine(e.Data);
             };

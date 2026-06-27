@@ -4,7 +4,7 @@ namespace UnityYamlMerge.Core;
 
 public static class YamlMergeProcessor
 {
-    public static async ValueTask StartAsync(IReadOnlyCollection<MergeRequest> requests, CancellationToken cancellationToken = default)
+    public static async ValueTask<IReadOnlyCollection<string>> StartAsync(IReadOnlyCollection<MergeRequest> requests, CancellationToken cancellationToken = default)
     {
         ThrowHelper.ThrowIfInvalidArguments(requests);
         var (versionSource, unityVersion, projectPath) = EnvironmentVariables.Get();
@@ -54,18 +54,24 @@ public static class YamlMergeProcessor
                 ThrowHelper.ThrowFailPullDockerImage(dockerImage);
             }
 
+            var resolvedFiles = new System.Collections.Concurrent.ConcurrentQueue<string>();
+
             await Parallel.ForEachAsync(requests, cancellationToken, async (request, ct) =>
             {
                 var success = await DockerHelper.RunMergeAsync(dockerImage, projectPath, request, ct);
-                if (!success)
+                if (success)
                 {
-                    throw new InvalidOperationException($"Merge failed for request: {request}");
+                    resolvedFiles.Enqueue(request.Output);
                 }
+                // Note: We don't throw exception on failure to allow partial resolution
             });
+
+            return resolvedFiles;
         }
         catch (Exception e)
         {
             ThrowHelper.ThrowException(e);
+            return [];
         }
     }
 

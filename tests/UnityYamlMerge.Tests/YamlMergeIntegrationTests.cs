@@ -58,7 +58,11 @@ public class YamlMergeIntegrationTests : IDisposable
         // Act
         try
         {
-            await YamlMergeProcessor.StartAsync(requests);
+            var resolvedFiles = await YamlMergeProcessor.StartAsync(requests);
+
+            // Assert resolved files
+            Assert.Single(resolvedFiles);
+            Assert.Equal(outputFile, resolvedFiles.First());
         }
         catch (Exception ex)
         {
@@ -106,7 +110,12 @@ public class YamlMergeIntegrationTests : IDisposable
         };
 
         // Act
-        await YamlMergeProcessor.StartAsync(requests);
+        var resolvedFiles = await YamlMergeProcessor.StartAsync(requests);
+
+        // Assert resolved files
+        Assert.Equal(2, resolvedFiles.Count);
+        Assert.Contains(outputFile1, resolvedFiles);
+        Assert.Contains(outputFile2, resolvedFiles);
 
         // Assert
         Assert.True(File.Exists(outputFile1), "Output file 1 was not created");
@@ -146,7 +155,11 @@ public class YamlMergeIntegrationTests : IDisposable
         var requests = new List<MergeRequest> { mergeRequest };
 
         // Act
-        await YamlMergeProcessor.StartAsync(requests);
+        var resolvedFiles = await YamlMergeProcessor.StartAsync(requests);
+
+        // Assert resolved files
+        Assert.Single(resolvedFiles);
+        Assert.Equal(oursFile, resolvedFiles.First());
 
         // Assert
         Assert.True(File.Exists(oursFile), "Ours/Output file should still exist");

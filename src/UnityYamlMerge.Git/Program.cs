@@ -4,6 +4,17 @@ using UnityYamlMerge.Git;
 using ValueTaskSupplement;
 using EnvironmentVariables = UnityYamlMerge.Git.EnvironmentVariables;
 
+// Parse command line arguments
+string? autoPushRemote = null;
+for (var i = 0; i < args.Length; i++)
+{
+    if (args[i] == "--auto-push" && i + 1 < args.Length)
+    {
+        autoPushRemote = args[i + 1];
+        break;
+    }
+}
+
 var (targetExtensions, baseBranch) = EnvironmentVariables.Get();
 var cancellationTokenSource = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
@@ -12,70 +23,109 @@ Console.CancelKeyPress += (_, e) =>
     cancellationTokenSource.Cancel();
 };
 
-if (string.IsNullOrEmpty(baseBranch))
-{
-    baseBranch = await GitHelper.GetDefaultBranchAsync(cancellationTokenSource.Token);
-}
-
-// headBranch (HEAD) を baseBranch (main 等) にマージしたときのコンフリクトを検出する
-const string headBranch = "HEAD";
-var conflictFiles = await GitHelper.GetConflictedFilePathsAsync(baseBranch, headBranch, targetExtensions, cancellationTokenSource.Token);
-
-if (conflictFiles.Count == 0)
-{
-    Console.WriteLine("No conflicts found in target extensions.");
-    Environment.Exit(0);
-}
-
-// ours/theirs の共通祖先 (merge-base) を base として使う
-var mergeBase = await GitHelper.GetMergeBaseAsync(baseBranch, headBranch, cancellationTokenSource.Token);
-
-var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-Directory.CreateDirectory(tempDir);
-var requests = new ConcurrentQueue<MergeRequest>();
-
 try
 {
-    await Parallel.ForEachAsync(conflictFiles, cancellationTokenSource.Token, async (filePath, token) =>
+    if (string.IsNullOrEmpty(baseBranch))
     {
-        var (basePath, oursPath, theirsPath) = GetThreeWayPaths(filePath, tempDir);
-
-        // base  = 共通祖先, ours = HEAD (PR元), theirs = baseBranch (PR先)
-        await ValueTaskEx.WhenAll(
-            ExportBlobIfExistsAsync(mergeBase, basePath, filePath, token),
-            ExportBlobIfExistsAsync(headBranch, oursPath, filePath, token),
-            ExportBlobIfExistsAsync(baseBranch, theirsPath, filePath, token)
-        );
-
-        requests.Enqueue(new MergeRequest(basePath, oursPath, theirsPath, filePath));
-
-        static async ValueTask ExportBlobIfExistsAsync(string revision, string outputPath, string filePath, CancellationToken cancellationToken)
-        {
-            var oid = await GitHelper.GetBlobOidAsync(revision, filePath, cancellationToken);
-
-            if (string.IsNullOrEmpty(oid))
-            {
-                await File.WriteAllBytesAsync(outputPath, [], cancellationToken);
-            }
-            else
-            {
-                await GitHelper.ExportBlobAsync(oid, outputPath, cancellationToken);
-            }
-        }
-    });
-
-    await YamlMergeProcessor.StartAsync(requests, cancellationTokenSource.Token);
-}
-catch (Exception ex)
-{
-    ThrowHelper.ThrowException(ex);
-}
-finally
-{
-    if (Directory.Exists(tempDir))
-    {
-        Directory.Delete(tempDir, recursive: true);
+        baseBranch = await GitHelper.GetDefaultBranchAsync(cancellationTokenSource.Token);
     }
+
+    // Detect conflicts when merging headBranch (HEAD) into baseBranch (e.g., main)
+    const string headBranch = "HEAD";
+    var conflictFiles =
+        await GitHelper.GetConflictedFilePathsAsync(baseBranch, headBranch, targetExtensions,
+            cancellationTokenSource.Token);
+
+    if (conflictFiles.Count == 0)
+    {
+        Console.WriteLine("No conflicts found in target extensions.");
+        Environment.Exit(0);
+    }
+
+    // Use the common ancestor (merge-base) of ours/theirs as base
+    var mergeBase = await GitHelper.GetMergeBaseAsync(baseBranch, headBranch, cancellationTokenSource.Token);
+
+    var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(tempDir);
+    var requests = new ConcurrentQueue<MergeRequest>();
+
+    try
+    {
+        await Parallel.ForEachAsync(conflictFiles, cancellationTokenSource.Token, async (filePath, token) =>
+        {
+            var (basePath, oursPath, theirsPath) = GetThreeWayPaths(filePath, tempDir);
+
+            // base = common ancestor, ours = HEAD (PR source), theirs = baseBranch (PR target)
+            await ValueTaskEx.WhenAll(
+                ExportBlobIfExistsAsync(mergeBase, basePath, filePath, token),
+                ExportBlobIfExistsAsync(headBranch, oursPath, filePath, token),
+                ExportBlobIfExistsAsync(baseBranch, theirsPath, filePath, token)
+            );
+
+            requests.Enqueue(new MergeRequest(basePath, oursPath, theirsPath, filePath));
+
+            static async ValueTask ExportBlobIfExistsAsync(string revision, string outputPath, string filePath, CancellationToken cancellationToken)
+            {
+                var oid = await GitHelper.GetBlobOidAsync(revision, filePath, cancellationToken);
+
+                if (string.IsNullOrEmpty(oid))
+                {
+                    await File.WriteAllBytesAsync(outputPath, [], cancellationToken);
+                }
+                else
+                {
+                    await GitHelper.ExportBlobAsync(oid, outputPath, cancellationToken);
+                }
+            }
+        });
+
+        var resolvedFiles = await YamlMergeProcessor.StartAsync(requests, cancellationTokenSource.Token);
+
+        if (resolvedFiles.Count <= 0)
+        {
+            Console.WriteLine("# No files were resolved.");
+            return;
+        }
+
+        // Output resolved file paths to stdout (one per line)
+        Console.WriteLine("# Resolved files:");
+        foreach (var file in resolvedFiles)
+        {
+            Console.WriteLine(file);
+        }
+
+        // Auto push if AUTO_PUSH_REMOTE is specified
+        if (!string.IsNullOrEmpty(autoPushRemote))
+        {
+            Console.WriteLine("Auto-pushing to remote");
+            await GitHelper.AddAsync(resolvedFiles, cancellationTokenSource.Token);
+            Console.WriteLine("Added resolved files to staging");
+
+            var message = """
+                          Auto-resolve merge conflicts using unity-yaml-merge
+
+                          # Resolved conflicts
+                          -
+                          """;
+            message += string.Join(Environment.NewLine + "- ", resolvedFiles);
+            await GitHelper.CommitAsync(message, cancellationTokenSource.Token);
+            Console.WriteLine("Committed resolved files");
+
+            await GitHelper.PushAsync(autoPushRemote, cancellationToken: cancellationTokenSource.Token);
+            Console.WriteLine("Successfully pushed resolved files to remote");
+        }
+    }
+    finally
+    {
+        if (Directory.Exists(tempDir))
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+}
+catch (Exception e)
+{
+    ThrowHelper.ThrowException(e);
 }
 
 static (string, string, string) GetThreeWayPaths(ReadOnlySpan<char> filePath, string tempDir)
