@@ -3,6 +3,10 @@ author: "AndanteTribe"
 description: "A tool to execute YamlMerge for resolving and merging Unity YAML files."
 
 inputs:
+  auto-push:
+    description: Whether to automatically push resolved files back to the repository. Set to 'true' to enable auto-push. Requires github-token with contents: write permission.
+    required: false
+    default: "true"
   github-token:
     description: GitHub token used for API calls and pushing resolved files. Defaults to the built-in GITHUB_TOKEN. The token must have contents: write permission.
     required: false
@@ -39,6 +43,7 @@ inputs:
     description: Unity Editor version string (e.g. 2022.3.45f1). Ignored unless unity-version-source is manual.
     required: false
     default: ""
+
 runs:
   using: composite
   steps:
@@ -49,13 +54,19 @@ runs:
       with:
         fetch-depth: ${{ inputs.fetch-depth }}
         token: ${{ inputs.github-token || github.token }}
+        persist-credentials: false
     - name: Run UnityYAMLMerge
       id: run-merge
       # ghasec-ignore: unpinned-action
       uses: AndanteTribe/unity-yaml-merge/actions/unity-yaml-merge-git@main # zizmor: ignore[unpinned-uses] repository-local action reference is intentionally tracked on @main
       with:
+        auto-push-remote: ${{ inputs.auto-push == 'true' && format('https://x-access-token:{0}@github.com/{1}.git', inputs.github-token || github.token, github.repository) || '' }}
         base-branch: ${{ inputs.base-branch || ((github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && github.event.pull_request.base.ref) || github.event.repository.default_branch }}
         target-extensions: ${{ inputs.target-extensions }}
         project-path: ${{ inputs.project-path }}
         unity-version-source: ${{ inputs.unity-version-source }}
         unity-version: ${{ inputs.unity-version }}
+
+branding:
+    icon: "git-merge"
+    color: "blue"

@@ -43,8 +43,8 @@ public static class GitHelper
     }
 
     /// <summary>
-    /// git merge-tree --write-tree を実行し、コンフリクトが発生した対象拡張子ファイルのパス一覧を返す。
-    /// targetBranch (PR元, HEAD) を baseBranch (PR先, main 等) にマージしたときのコンフリクトを検出する。
+    /// Executes git merge-tree --write-tree and returns a list of conflicted file paths with target extensions.
+    /// Detects conflicts when merging targetBranch (PR source, HEAD) into baseBranch (PR target, e.g., main).
     /// </summary>
     public static async ValueTask<IReadOnlyList<string>> GetConflictedFilePathsAsync(
         string baseBranch, string headBranch, string[] targetExtensions, CancellationToken cancellationToken = default)
@@ -72,7 +72,7 @@ public static class GitHelper
 
         // Output: line 0 = <tree-oid>, lines 1+ = conflicted file paths
         var files = new List<string>();
-        // tree-oid を捨てる
+        // Discard the tree-oid
         output.TryDequeue(out _);
 
         while (output.TryDequeue(out var l))
@@ -139,8 +139,8 @@ public static class GitHelper
     }
 
     /// <summary>
-    /// git オブジェクトをバイナリのままファイルに書き出す。WriteAllLines は使わず、
-    /// StandardOutput.BaseStream から直接コピーすることで改行コード変換を防ぐ。
+    /// Exports a git object as binary to a file. Does not use WriteAllLines,
+    /// copies directly from StandardOutput.BaseStream to prevent line ending conversion.
     /// </summary>
     public static async ValueTask ExportBlobAsync(string blobOid, string outputPath, CancellationToken cancellationToken = default)
     {
@@ -195,6 +195,66 @@ public static class GitHelper
                 // Ignore exceptions when deleting the file
             }
             throw new InvalidOperationException($"git cat-file blob failed for OID: {blobOid}");
+        }
+    }
+
+    /// <summary>
+    /// Executes git add to stage the specified file paths.
+    /// </summary>
+    public static async ValueTask AddAsync(IEnumerable<string> filePaths, CancellationToken cancellationToken = default)
+    {
+        var processStartInfo = ProcessStartInfo.Create("git");
+        processStartInfo.ArgumentList.Add("add");
+        processStartInfo.ArgumentList.Add("--");
+        foreach (var filePath in filePaths)
+        {
+            processStartInfo.ArgumentList.Add(filePath);
+        }
+
+        var output = new ConcurrentQueue<string>();
+        var exitCode = await Process.StartAsync(processStartInfo, output, cancellationToken);
+        if (exitCode != 0)
+        {
+            ThrowGitFailed(exitCode, output);
+        }
+    }
+
+    /// <summary>
+    /// Executes git commit.
+    /// </summary>
+    public static async ValueTask CommitAsync(string message, CancellationToken cancellationToken = default)
+    {
+        var processStartInfo = ProcessStartInfo.Create("git");
+        processStartInfo.ArgumentList.Add("commit");
+        processStartInfo.ArgumentList.Add("-m");
+        processStartInfo.ArgumentList.Add(message);
+
+        var output = new ConcurrentQueue<string>();
+        var exitCode = await Process.StartAsync(processStartInfo, output, cancellationToken);
+        if (exitCode != 0)
+        {
+            ThrowGitFailed(exitCode, output);
+        }
+    }
+
+    /// <summary>
+    /// Executes git push.
+    /// </summary>
+    public static async ValueTask PushAsync(string remote, string? refspec = null, CancellationToken cancellationToken = default)
+    {
+        var processStartInfo = ProcessStartInfo.Create("git");
+        processStartInfo.ArgumentList.Add("push");
+        processStartInfo.ArgumentList.Add(remote);
+        if (!string.IsNullOrEmpty(refspec))
+        {
+            processStartInfo.ArgumentList.Add(refspec);
+        }
+
+        var output = new ConcurrentQueue<string>();
+        var exitCode = await Process.StartAsync(processStartInfo, output, cancellationToken);
+        if (exitCode != 0)
+        {
+            ThrowGitFailed(exitCode, output);
         }
     }
 
