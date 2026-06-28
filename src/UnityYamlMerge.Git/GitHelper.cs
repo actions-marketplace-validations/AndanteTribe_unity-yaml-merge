@@ -209,6 +209,7 @@ public static class GitHelper
         var processStartInfo = ProcessStartInfo.Create("git");
         processStartInfo.ArgumentList.Add("merge");
         processStartInfo.ArgumentList.Add("--continue");
+        processStartInfo.ArgumentList.Add("--no-verify");
         processStartInfo.Environment["GIT_EDITOR"] = "true";
 
         var output = new ConcurrentQueue<string>();
@@ -370,6 +371,7 @@ public static class GitHelper
         processStartInfo.ArgumentList.Add("commit");
         processStartInfo.ArgumentList.Add("-m");
         processStartInfo.ArgumentList.Add(message);
+        processStartInfo.ArgumentList.Add("--no-verify");
 
         var output = new ConcurrentQueue<string>();
         var exitCode = await Process.StartAsync(processStartInfo, output, cancellationToken);
@@ -393,6 +395,7 @@ public static class GitHelper
         {
             processStartInfo.ArgumentList.Add(refspec);
         }
+        processStartInfo.Environment["GIT_TERMINAL_PROMPT"] = "0";
 
         var output = new ConcurrentQueue<string>();
         var exitCode = await Process.StartAsync(processStartInfo, output, cancellationToken);
