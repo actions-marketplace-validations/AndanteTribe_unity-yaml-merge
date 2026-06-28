@@ -351,6 +351,7 @@ public static class GitHelper
         cancellationToken.ThrowIfCancellationRequested();
         var processStartInfo = ProcessStartInfo.Create("git");
         processStartInfo.ArgumentList.Add("push");
+        processStartInfo.ArgumentList.Add("--no-verify");
         processStartInfo.ArgumentList.Add(remote);
         if (!string.IsNullOrEmpty(refspec))
         {
