@@ -127,11 +127,10 @@ public static class GitHelper
     }
 
     /// <summary>
-    /// Executes git merge-tree --write-tree and returns a list of conflicted file paths with target extensions.
+    /// Executes git merge-tree --write-tree and returns a list of conflicted file paths.
     /// Detects conflicts when merging targetBranch (PR source, HEAD) into baseBranch (PR target, e.g., main).
     /// </summary>
-    public static async ValueTask<IReadOnlyList<string>> GetConflictedFilePathsAsync(
-        string baseBranch, string headBranch, ReadOnlyMemory<string> targetExtensions = default, CancellationToken cancellationToken = default)
+    public static async ValueTask<IReadOnlyList<string>> GetConflictedFilePathsAsync(string baseBranch, string headBranch, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         // exit code 0 = clean merge, 1 = conflicts exist, other = error
@@ -163,19 +162,9 @@ public static class GitHelper
         while (output.TryDequeue(out var l))
         {
             var line = l.AsSpan().Trim();
-            if (line.IsEmpty)
+            if (!line.IsEmpty)
             {
-                continue;
-            }
-
-            var ext = Path.GetExtension(line).TrimStart('.');
-            foreach (var targetExtension in targetExtensions.Span)
-            {
-                if (targetExtension.AsSpan().SequenceEqual(ext))
-                {
-                    files.Add(line.ToString());
-                    break;
-                }
+                files.Add(line.ToString());
             }
         }
         return files;
