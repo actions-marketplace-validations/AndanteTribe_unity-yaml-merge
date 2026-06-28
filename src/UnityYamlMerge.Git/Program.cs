@@ -104,6 +104,12 @@ try
             }
         });
 
+        if (canFullyResolve && !string.IsNullOrEmpty(autoPushRemote))
+        {
+            await GitHelper.MergeAsync(remoteBranch, cancellationTokenSource.Token);
+            Console.WriteLine("Merge started");
+        }
+
         var resolvedFiles = await YamlMergeProcessor.StartAsync(requests, cancellationTokenSource.Token);
 
         if (resolvedFiles.Count <= 0)
@@ -130,13 +136,11 @@ try
                           -
                           """ + string.Join(Environment.NewLine + "- ", resolvedFiles);
 
+            await GitHelper.AddAsync(resolvedFiles, cancellationTokenSource.Token);
+            Console.WriteLine("Added resolved files to staging");
+
             if (canFullyResolve && resolvedFiles.Count == allConflictFiles.Count)
             {
-                // all conflicts resolved
-                await GitHelper.MergeAsync(remoteBranch, cancellationTokenSource.Token);
-                Console.WriteLine("Merge started");
-                await GitHelper.AddAsync(resolvedFiles, cancellationTokenSource.Token);
-                Console.WriteLine("Added resolved files to staging");
                 try
                 {
                     await GitHelper.MergeContinueAsync(cancellationTokenSource.Token);
@@ -150,10 +154,7 @@ try
             }
             else
             {
-                // partial resolution, commit and push
-                await GitHelper.AddAsync(resolvedFiles, cancellationTokenSource.Token);
-                Console.WriteLine("Added resolved files to staging");
-
+                // partial resolution, commit
                 await GitHelper.CommitAsync(message, cancellationTokenSource.Token);
                 Console.WriteLine("Committed resolved files");
             }
