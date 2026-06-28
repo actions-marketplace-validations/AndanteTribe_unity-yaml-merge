@@ -27,7 +27,16 @@ public static class GitHelper
     public static async ValueTask<string> GetDefaultBranchAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        // Automatically set `refs/remotes/origin/HEAD` in case it is not set
         var processStartInfo = ProcessStartInfo.Create("git");
+        processStartInfo.ArgumentList.Add("remote");
+        processStartInfo.ArgumentList.Add("set-head");
+        processStartInfo.ArgumentList.Add("origin");
+        processStartInfo.ArgumentList.Add("--auto");
+        await Process.StartAsync(processStartInfo, cancellationToken: cancellationToken);
+
+        processStartInfo = ProcessStartInfo.Create("git");
         processStartInfo.ArgumentList.Add("symbolic-ref");
         processStartInfo.ArgumentList.Add("--short");
         processStartInfo.ArgumentList.Add("refs/remotes/origin/HEAD");
