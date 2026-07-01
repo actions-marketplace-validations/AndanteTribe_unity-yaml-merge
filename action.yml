@@ -68,7 +68,7 @@ runs:
           -e GIT_CONFIG_COUNT=1 \
           -e GIT_CONFIG_KEY_0=credential.helper \
           -e GIT_CONFIG_VALUE_0=store \
-          andantetribe/unity-yaml-merge-git:latest \
+          andantetribe/unity-yaml-merge-git:0.1.0 \
           ${{ inputs.auto-push == 'true' && '--auto-push' || '' }} \
           --git-user-email "${{ inputs.git-user-email }}" \
           --git-user-name "${{ inputs.git-user-name }}" \

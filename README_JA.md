@@ -34,7 +34,7 @@ name: unity-yaml-merge
 on:
   push:
     branches:
-      - main
+      - feature/**
   workflow_dispatch:
 
 jobs:
