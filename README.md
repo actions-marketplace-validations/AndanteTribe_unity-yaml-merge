@@ -151,7 +151,7 @@ Behavior notes:
 
 ### GitHub Action Inputs
 
-The Marketplace action exposes the following inputs from [action.yml](/D:/AndanteTribe/unity-yaml-merge/action.yml:1):
+The Marketplace action exposes the following inputs from [action.yml](action.yml):
 
 | Input | Default | Description |
 | --- | --- | --- |

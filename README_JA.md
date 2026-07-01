@@ -151,7 +151,7 @@ UnityYamlMerge.Git [options...] [--target-extensions <ext1> <ext2> ...]
 
 ### GitHub Action Inputs
 
-Marketplace アクションは [action.yml](/D:/AndanteTribe/unity-yaml-merge/action.yml:1) で次の input を公開しています。
+Marketplace アクションは [action.yml](action.yml) で次の input を公開しています。
 
 | Input | 既定値 | 説明 |
 | --- | --- | --- |

@@ -25,28 +25,22 @@ static async Task RunAsync(
     };
     var parsedTargetExtensions = targetExtensions.Length == 0 ? ["unity", "prefab"] : targetExtensions;
     var autoPushRemote = autoPush ? "origin" : null;
-    var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-    Console.CancelKeyPress += (_, e) =>
-    {
-        e.Cancel = true;
-        cancellationTokenSource.Cancel();
-    };
 
     try
     {
-        await GitHelper.SetConfigUserAsync(gitUserEmail, gitUserName, cancellationTokenSource.Token);
-        await GitHelper.SetConfigSafeDirectoryAsync(cancellationTokenSource.Token);
+        await GitHelper.SetConfigUserAsync(gitUserEmail, gitUserName, cancellationToken);
+        await GitHelper.SetConfigSafeDirectoryAsync(cancellationToken);
         if (string.IsNullOrEmpty(baseBranch))
         {
-            baseBranch = await GitHelper.GetDefaultBranchAsync(cancellationTokenSource.Token);
+            baseBranch = await GitHelper.GetDefaultBranchAsync(cancellationToken);
         }
 
-        await GitHelper.FetchAsync(baseBranch, cancellationTokenSource.Token);
+        await GitHelper.FetchAsync(baseBranch, cancellationToken);
         var remoteBranch = "origin/" + baseBranch;
 
         // Detect conflicts when merging headBranch (HEAD) into remoteBranch (e.g., main)
         const string headBranch = "HEAD";
-        var allConflictFiles = await GitHelper.GetConflictedFilePathsAsync(remoteBranch, headBranch, cancellationToken: cancellationTokenSource.Token);
+        var allConflictFiles = await GitHelper.GetConflictedFilePathsAsync(remoteBranch, headBranch, cancellationToken: cancellationToken);
 
         if (allConflictFiles.Count == 0)
         {
@@ -67,7 +61,7 @@ static async Task RunAsync(
         var canFullyResolve = allConflictFiles.Count == conflictedTargetFiles.Count;
 
         // Use the common ancestor (merge-base) of ours/theirs as base
-        var mergeBase = await GitHelper.GetMergeBaseAsync(remoteBranch, headBranch, cancellationTokenSource.Token);
+        var mergeBase = await GitHelper.GetMergeBaseAsync(remoteBranch, headBranch, cancellationToken);
 
         var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         Directory.CreateDirectory(tempDir);
@@ -77,11 +71,11 @@ static async Task RunAsync(
         {
             if (canFullyResolve && !string.IsNullOrEmpty(autoPushRemote))
             {
-                await GitHelper.MergeAsync(remoteBranch, cancellationTokenSource.Token);
+                await GitHelper.MergeAsync(remoteBranch, cancellationToken);
                 Console.WriteLine("Merge started");
             }
 
-            await Parallel.ForEachAsync(conflictedTargetFiles, cancellationTokenSource.Token, async (filePath, token) =>
+            await Parallel.ForEachAsync(conflictedTargetFiles, cancellationToken, async (filePath, token) =>
             {
                 var (basePath, oursPath, theirsPath) = GetThreeWayPaths(filePath, tempDir);
                 var oursRevision = canFullyResolve ? "ORIG_HEAD" : headBranch;
@@ -111,7 +105,7 @@ static async Task RunAsync(
                 }
             });
 
-            var resolvedFiles = await YamlMergeProcessor.StartAsync(requests, options, cancellationTokenSource.Token);
+            var resolvedFiles = await YamlMergeProcessor.StartAsync(requests, options, cancellationToken);
 
             if (resolvedFiles.Count <= 0)
             {
@@ -136,30 +130,30 @@ static async Task RunAsync(
                               -
                               """ + string.Join(Environment.NewLine + "- ", resolvedFiles);
 
-                await GitHelper.AddAsync(resolvedFiles, cancellationTokenSource.Token);
+                await GitHelper.AddAsync(resolvedFiles, cancellationToken);
                 Console.WriteLine("Added resolved files to staging");
 
                 if (canFullyResolve && resolvedFiles.Count == allConflictFiles.Count)
                 {
                     try
                     {
-                        await GitHelper.MergeContinueAsync(cancellationTokenSource.Token);
+                        await GitHelper.MergeContinueAsync(cancellationToken);
                         Console.WriteLine("Merge completed");
                     }
                     catch
                     {
-                        await GitHelper.MergeAbortAsync(cancellationTokenSource.Token);
+                        await GitHelper.MergeAbortAsync(cancellationToken);
                         throw;
                     }
                 }
                 else
                 {
                     // partial resolution, commit
-                    await GitHelper.CommitAsync(message, cancellationTokenSource.Token);
+                    await GitHelper.CommitAsync(message, cancellationToken);
                     Console.WriteLine("Committed resolved files");
                 }
 
-                await GitHelper.PushAsync(autoPushRemote, cancellationToken: cancellationTokenSource.Token);
+                await GitHelper.PushAsync(autoPushRemote, cancellationToken: cancellationToken);
                 Console.WriteLine("Successfully pushed resolved files to remote");
             }
         }
