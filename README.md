@@ -47,13 +47,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: AndanteTribe/unity-yaml-merge@v1
+      - uses: AndanteTribe/unity-yaml-merge@0.1.1
         with:
           auto-push: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           base-branch: main
           project-path: .
-          unity-version-source: project
+          unity-version-source: latest-lts
           target-extensions: unity prefab
 ```
 
